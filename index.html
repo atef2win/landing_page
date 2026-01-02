@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agents at Work — Démarrer</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 40px; }
+      .wrap { max-width: 560px; margin: 0 auto; }
+      h1 { font-size: 22px; margin: 0 0 10px; }
+      p { margin: 0 0 18px; line-height: 1.4; }
+      button {
+        width: 100%;
+        padding: 14px 16px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        border: 0;
+        border-radius: 10px;
+      }
+      .muted { font-size: 12px; opacity: 0.75; margin-top: 10px; }
+      .row { display: flex; gap: 10px; margin-top: 10px; }
+      .row button { width: auto; flex: 1; font-weight: 500; }
+      code { background: #f4f4f4; padding: 2px 6px; border-radius: 6px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Démarrer la qualification</h1>
+      <p>Un identifiant de session est créé automatiquement, puis vous êtes redirigé vers le formulaire.</p>
+
+      <button id="startBtn">Commencer</button>
+
+      <p class="muted">
+        Tally cible : <code id="tallyUrlLabel"></code>
+      </p>
+
+      <div class="row">
+        <button id="copyBtn" type="button">Copier le client_id</button>
+        <button id="regenBtn" type="button">Régénérer</button>
+      </div>
+
+      <p class="muted">
+        Session actuelle : <code id="clientIdLabel">—</code>
+      </p>
+    </div>
+
+    <script>
+      // === CONFIG ===
+      // Ton formulaire Tally (celui que tu as donné)
+      const TALLY_FORM_URL = "https://tally.so/r/7Rq6yP";
+
+      // Préfixe pour distinguer tes ids
+      const CLIENT_PREFIX = "client_";
+
+      // Clé localStorage (optionnel)
+      const STORAGE_KEY = "aaw_client_id";
+
+      // === UTILS ===
+      function generateClientId() {
+        // crypto.randomUUID() est supporté par la majorité des navigateurs modernes
+        if (window.crypto && typeof window.crypto.randomUUID === "function") {
+          return CLIENT_PREFIX + window.crypto.randomUUID();
+        }
+        // Fallback minimaliste
+        const rand = () => Math.floor(Math.random() * 1e16).toString(16).padStart(16, "0");
+        return CLIENT_PREFIX + rand() + rand();
+      }
+
+      function setClientId(id) {
+        localStorage.setItem(STORAGE_KEY, id);
+        document.getElementById("clientIdLabel").textContent = id;
+      }
+
+      function getClientId() {
+        return localStorage.getItem(STORAGE_KEY);
+      }
+
+      function buildTallyUrl(clientId) {
+        const url = new URL(TALLY_FORM_URL);
+        url.searchParams.set("client_id", clientId);
+        return url.toString();
+      }
+
+      // === INIT ===
+      const tallyUrlLabel = document.getElementById("tallyUrlLabel");
+      tallyUrlLabel.textContent = TALLY_FORM_URL;
+
+      let clientId = getClientId();
+      if (!clientId) {
+        clientId = generateClientId();
+        setClientId(clientId);
+      } else {
+        document.getElementById("clientIdLabel").textContent = clientId;
+      }
+
+      // === ACTIONS ===
+      document.getElementById("startBtn").addEventListener("click", () => {
+        const currentId = getClientId() || clientId || generateClientId();
+        if (!getClientId()) setClientId(currentId);
+        const redirectUrl = buildTallyUrl(currentId);
+        window.location.href = redirectUrl;
+      });
+
+      document.getElementById("regenBtn").addEventListener("click", () => {
+        const newId = generateClientId();
+        setClientId(newId);
+      });
+
+      document.getElementById("copyBtn").addEventListener("click", async () => {
+        const currentId = getClientId() || clientId;
+        try {
+          await navigator.clipboard.writeText(currentId);
+          alert("client_id copié.");
+        } catch (e) {
+          // Fallback copy
+          const tmp = document.createElement("textarea");
+          tmp.value = currentId;
+          document.body.appendChild(tmp);
+          tmp.select();
+          document.execCommand("copy");
+          document.body.removeChild(tmp);
+          alert("client_id copié.");
+        }
+      });
+    </script>
+  </body>
+</html>
